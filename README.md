@@ -15,7 +15,7 @@ graph LR
 
 This project aims to create a transparent WiFi-to-Ethernet bridge for your home network. With this setup, you can easily connect devices (?) that lack WiFi support to your network without running cables everywhere or relying on technologies like D-LAN.
 
-**Note:** Raspberry Pi uses NetworkManager instead of wpa-supplicant, so the standard Debian instructions must be adapted.
+**Note:** Raspberry Pi uses NetworkManager instead of wpa-supplicant, so the [standard Debian instructions](https://wiki.debian.org/BridgeNetworkConnectionsProxyArp) must be adapted.
 
 ### Required Packages
 

@@ -5,8 +5,8 @@ event=$2
 
 if [[ $interface != "wlan0" ]] || [[ $event != "down" ]]
 then
-  return 0
+  exit 0
 fi
 
-sh -c "/usr/bin/killall /usr/sbin/parprouted"
-sh -c "/sbin/ifdown eth0"
+/usr/bin/killall /usr/sbin/parprouted
+/usr/bin/nmcli d down eth0

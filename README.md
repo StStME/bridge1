@@ -1,42 +1,69 @@
-raspberry pi uses NetworkMangaer instead of wpa-supplicant. 
+# WiFi-to-Ethernet Bridge
 
-so I have to adapt the debian example https://wiki.debian.org/BridgeNetworkConnectionsProxyArp to work with NetworkManager.
 
-from debian.org 
-I need to install: sudo apt-get install parprouted dhcp-helper avahi-daemon
-
-need to set net.ipv4.ip_forward=1 in /etc/sysctl.d/local.conf
-
-enable dhcp relay in /etc/default/dhcp-helper:
-
+```mermaid
+%% WiFi-to-Ethernet Bridge Diagram
+graph LR
+    R[Router] --> A
+    A[WiFi Access Point] -- Wireless --> B[Raspberry Pi - Bridge]
+    B -- Ethernet --> C[Non-WiFi / Wired Device]
+    A -- Wireless -->  D[Other WiFi Devices]
+    R --- E[Other Wired Devices]
+    B:::bridge
+    classDef bridge stroke:#333,stroke-width:2px;
 ```
-# /etc/default/dhcp-helper
+
+This project aims to create a transparent WiFi-to-Ethernet bridge for your home network. With this setup, you can easily connect devices (?) that lack WiFi support to your network without running cables everywhere or relying on technologies like D-LAN.
+
+**Note:** Raspberry Pi uses NetworkManager instead of wpa-supplicant, so the standard Debian instructions must be adapted.
+
+### Required Packages
+
+Install the following packages:
+```
+sudo apt-get install parprouted dhcp-helper avahi-daemon
+```
+
+### System Configuration
+
+Enable IP forwarding by adding the following to `/etc/sysctl.d/local.conf`:
+```
+net.ipv4.ip_forward=1
+```
+
+Configure DHCP relay in `/etc/default/dhcp-helper`:
+```
 DHCPHELPER_OPTS="-b wlan0 -i eth0"
 ```
 
-and enable the mDNS relaying: 
-/etc/avahi/avahi-daemon.conf 
+Enable mDNS relaying by editing `/etc/avahi/avahi-daemon.conf`.
 
+### NetworkManager Dispatcher Scripts
 
+Referencing [this AskUbuntu post](https://askubuntu.com/questions/1111652/network-manager-script-when-interface-up), create `post-up.sh` and `post-down.sh` scripts in `/etc/NetworkManager/dispatcher.d/`.
 
-From: 
-https://askubuntu.com/questions/1111652/network-manager-script-when-interface-up
+Make sure both scripts are executable and owned by root:
+```
+chmod +x post-up.sh post-down.sh
+chown root post-up.sh post-down.sh
+```
 
-I created the [post-up.sh](./post-up.sh) and [post-down.sh](./post-down.sh) scripts into /etc/NetworkManager/dispatcher.d/
+### Disabling Wired Connection Autoconnect
 
-In order for NetworkManager to execute them, they need ofc execution permission (chmod +x) but also they must be owned by root: chown root post-up/down.sh. 
+NetworkManager may attempt to connect via `eth0`, which interferes with the ARP bridge. Disabling the netplan configuration for `eth0` (e.g., setting `activation-mode: off` in the YAML) may not work. Disabling autoconnect via NetworkManager is more reliable.
 
-Now it will work until the Network Manager will try to connect via the eht0 interface to the wired connection. This must be disabled 
+Check autoconnect status:
+```
+nmcli -f name,autoconnect con show
+```
+If "Wired connection 1" (assigned to `eth0`) is still set to autoconnect, disable it:
+```
+sudo nmcli c modify "Wired connection 1" connection.autoconnect no
+```
+Restart the system to apply changes.
 
-needed to disable eth0-netplan config because it would interfere with the arp bridge: 
+### References
 
-https://askubuntu.com/questions/1445221/permanently-disable-network-interface-in-ubuntu-22-04 -> settion activation-mode: off in the netplan yml did not work unfortunately but using nmcli and modifying the connection (see below did work like a charm). Disabling autoconnect for the interface did also not work.  
-
-that did not help. 
-
-Trying: 
-nmcli device set <interface> autoconnect yes
-
-did not work (or was not sufficient?)
-
-well, executing `nmcli -f name,autoconnect con show` showed that "Wired connection 1" which is asssigned to eth0 was still autoconnecting so `sudo nmcli c modify "Wired connection 1" connection.autoconnect no` disabled it. lets restart and see if that helped. 
+- [Debian ARP Bridge Example](https://wiki.debian.org/BridgeNetworkConnectionsProxyArp)
+- [AskUbuntu: NetworkManager Dispatcher Scripts](https://askubuntu.com/questions/1111652/network-manager-script-when-interface-up)
+- [AskUbuntu: Disabling Network Interface](https://askubuntu.com/questions/1445221/permanently-disable-network-interface-in-ubuntu-22-04)

@@ -2,6 +2,7 @@
 public/
 dist/
 build/
+docs/
 *.egg-info/
 __pycache__/
 *.pyc

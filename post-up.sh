@@ -11,5 +11,7 @@ then
   exit 0
 fi
 /usr/sbin/parprouted eth0 wlan0 &
+#TODO: use correct IP adress for target device
+ip route replace 192.0.2.201 dev eth0 scope link metric 50
   # clone the dhcp-allocated IP to eth0 so dhcp-helper will relay for the correct subnet
 /sbin/ip addr add $(/sbin/ip addr show wlan0 | perl -wne 'm|^\s+inet (.*)/| && print $1')/32 dev eth0

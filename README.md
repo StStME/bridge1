@@ -67,3 +67,70 @@ Restart the system to apply changes.
 - [Debian ARP Bridge Example](https://wiki.debian.org/BridgeNetworkConnectionsProxyArp)
 - [AskUbuntu: NetworkManager Dispatcher Scripts](https://askubuntu.com/questions/1111652/network-manager-script-when-interface-up)
 - [AskUbuntu: Disabling Network Interface](https://askubuntu.com/questions/1445221/permanently-disable-network-interface-in-ubuntu-22-04)
+
+## Practical Learnings for AirPlay and Wired Target Devices
+
+### Guidance Learnings
+
+For wired target devices behind the bridge, a static IP configuration on the target device is more reliable than DHCP. The key persistent setting is therefore a direct route from the Pi to the target device via `eth0`.
+
+Recommended entry in `/etc/NetworkManager/dispatcher.d/post-up.sh`:
+
+```bash
+ip route replace 192.0.2.201 dev eth0 scope link metric 50
+```
+
+The address `192.0.2.201` is a documentation address and must be adapted to your local subnet.
+
+### Notes for Potential Further Improvements
+
+If AirPlay is visible but streaming does not start or immediately drops, the following additional measures may help.
+
+1. Explicitly set proxy ARP and forwarding:
+
+```bash
+sysctl -w net.ipv4.ip_forward=1
+sysctl -w net.ipv4.conf.eth0.proxy_arp=1
+sysctl -w net.ipv4.conf.wlan0.proxy_arp=1
+```
+
+2. Optionally set a dummy IP on the Pi cable interface:
+
+```bash
+ip addr add 192.0.2.254/24 dev eth0 2>/dev/null
+```
+
+Again, `192.0.2.x` is only a documentation example range.
+
+### Debugging Cheatsheet
+
+#### 1. Check ARP visibility of the target device
+
+```bash
+arp -an | grep <target-device-ip>
+```
+
+If `<incomplete>` appears: check cable/link state or restart the target device.
+
+#### 2. Observe mDNS/AirPlay traffic
+
+```bash
+sudo tcpdump -i any port 5353 -n
+```
+
+#### 3. Verify routing
+
+```bash
+ip route show
+```
+
+The target route via `eth0` must be present.
+
+#### 4. Check service status
+
+```bash
+sudo systemctl status avahi-daemon
+sudo systemctl status dhcp-helper
+```
+
+Both services should be `active (running)`.
